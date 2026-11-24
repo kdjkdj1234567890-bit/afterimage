@@ -118,8 +118,9 @@ function toggleMute() {
   audio.setMuted(muted);
 }
 
-function showPanel(html) {
+function showPanel(html, wide = false) {
   panel.innerHTML = html;
+  panel.classList.toggle('wide', wide);
   screenEl.classList.remove('gone');
   panel.classList.remove('rise');
   void panel.offsetWidth;
@@ -198,6 +199,7 @@ function showSelect() {
     return `<div class="card ${locked ? 'locked' : ''}" data-action="${locked ? '' : 'level'}" data-level="${i}">
       <div class="n">${String(i + 1).padStart(2, '0')}</div>
       <div class="t">${lv.name}</div>
+      <div class="p">par ${lv.par} echo${lv.par === 1 ? '' : 'es'}</div>
       <div class="m">${locked ? 'locked' : medal}</div>
     </div>`;
   }).join('');
@@ -205,7 +207,7 @@ function showSelect() {
     <div class="eyebrow">select a room</div>
     <div class="grid">${cards}</div>
     <div class="meta">Esc returns · gold means you solved it in par</div>
-  `);
+  `, true);
 }
 
 function startLevel(i) {
