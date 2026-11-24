@@ -3,3 +3,4 @@ video/frames/
 video/*.wav
 video/frames.txt
 __pycache__/
+.opengame/

@@ -2,6 +2,12 @@
 
 **A browser puzzle platformer with one mechanic: you cannot make the jump, but your past self can.**
 
+**[▶ Play in your browser](https://opengame.io/g/vcyj5sdwg7)** · [GitHub Pages mirror](https://kdjkdj1234567890-bit.github.io/afterimage/)
+
+Entry for [OpenGame Game Jam #1](https://opengame.io/jam) — Platformer track.
+
+![AFTERIMAGE title screen](docs/screenshot-title.png)
+
 Every run you abandon — whether you die or press `R` — leaves a piece of you standing
 exactly where you stopped: in mid-air, on a pressure plate, over a pit. Those
 afterimages are solid. Build the way forward out of who you were.
@@ -9,8 +15,9 @@ afterimages are solid. Build the way forward out of who you were.
 Six rooms. One mechanic. No installs, no account, no network calls.
 
 ```
-open build/index.html through any static server:
-  cd build && python3 -m http.server 8000   →  http://localhost:8000
+play it online:  https://opengame.io/g/vcyj5sdwg7
+run it locally:  cd build && python3 -m http.server 8000   →  http://localhost:8000
+deploy a change: opengame deploy . --json   (manifest in ./opengame.json, output = build/)
 ```
 
 ---
