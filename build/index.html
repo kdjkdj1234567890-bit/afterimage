@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AFTERIMAGE — a puzzle platformer about standing on yourself</title>
+<meta name="description" content="A browser puzzle platformer. You cannot make the jump. Your past self can. Eight rooms, one mechanic, zero installs." />
+<link rel="stylesheet" href="style.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23090d14'/%3E%3Crect x='9' y='7' width='14' height='18' rx='6' fill='%23ffc46b'/%3E%3Crect x='12' y='11' width='8' height='4' rx='2' fill='%23090d14'/%3E%3C/svg%3E" />
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="game" width="1024" height="576" aria-label="Game view"></canvas>
+
+    <div id="hud" class="hidden">
+      <div class="hud-left">
+        <span id="hud-num">01</span>
+        <span id="hud-name">First Light</span>
+      </div>
+      <div class="hud-right">
+        <span id="hud-echoes" class="dots"></span>
+        <span id="hud-time">0:00.0</span>
+      </div>
+    </div>
+
+    <div id="hint" class="hidden"></div>
+    <div id="toast" class="hidden"></div>
+
+    <div id="screen" class="screen">
+      <div class="panel" id="panel"></div>
+    </div>
+  </div>
+  <div class="keys">
+    <span><b>A</b> <b>D</b> move</span>
+    <span><b>SPACE</b> jump</span>
+    <span><b>R</b> leave yourself</span>
+    <span><b>M</b> mute</span>
+    <span><b>ESC</b> pause</span>
+  </div>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

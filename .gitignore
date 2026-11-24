@@ -1,0 +1,5 @@
+shots/
+video/frames/
+video/*.wav
+video/frames.txt
+__pycache__/

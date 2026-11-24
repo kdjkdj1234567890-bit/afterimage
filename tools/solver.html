@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>AFTERIMAGE — solver (beam search over the real engine)</title>
+<style>body{background:#111;color:#ddd;font:12px ui-monospace,monospace;padding:16px;white-space:pre-wrap}</style>
+</head>
+<body>
+<pre id="out">booting…</pre>
+<script type="module">
+import { World, simulate } from '../build/js/engine.js';
+import { LEVELS } from '../build/js/levels.js';
+
+const out = document.getElementById('out');
+const log = (s) => { out.textContent += s + '\n'; };
+
+const ACTIONS = [
+  { keys: 'N', jump: false },
+  { keys: 'R', jump: false },
+  { keys: 'L', jump: false },
+  { keys: 'RJ', jump: true },
+  { keys: 'J', jump: true },
+  { keys: 'LJ', jump: true },
+];
+
+function cloneWorld(w) {
+  const c = Object.create(World.prototype);
+  c.level = w.level;
+  c.events = [];
+  c.echoes = w.echoes;
+  c.attempts = w.attempts;
+  c.state = w.state;
+  c.stateT = w.stateT;
+  c.levelTime = w.levelTime;
+  c.doorProgress = w.doorProgress;
+  c.player = { ...w.player };
+  c.frames = [];
+  c.attemptTime = w.attemptTime;
+  return c;
+}
+
+function stepAction(w, action, frames, prevJump) {
+  for (let i = 0; i < frames; i++) {
+    const jump = action.jump;
+    w.step({
+      left: action.keys.includes('L'),
+      right: action.keys.includes('R'),
+      jump,
+      jumpPressed: jump && i === 0 && !prevJump,
+    });
+    if (w.state !== 'play') return false;
+  }
+  return true;
+}
+
+function heuristic(level, p) {
+  const g = level.goal;
+  return Math.abs(g.x - p.x) + Math.abs(g.y - p.y) * 1.2;
+}
+
+/** Applies prefix attempts (each ending = a frozen afterimage) to a new World. */
+function withPrefix(def, prefix) {
+  const w = new World(def);
+  for (let i = 0; i < prefix.length; i++) {
+    for (const [keys, dur] of prefix[i]) {
+      const jump = keys.includes('J');
+      for (let f = 0; f < dur; f++) {
+        w.step({ left: keys.includes('L'), right: keys.includes('R'), jump, jumpPressed: jump && f === 0 });
+        if (w.state !== 'play') break;
+      }
+      if (w.state !== 'play') break;
+    }
+    if (w.state === 'play' && i < prefix.length) w.commitEcho();
+    w.startAttempt();
+  }
+  return w;
+}
+
+/** Beam search for one attempt; returns a full input path. */
+function beam(def, prefix, opts = {}) {
+  const width = opts.width ?? 700;
+  const chunk = opts.chunk ?? 3;
+  const depth = opts.depth ?? 80;
+  const start = withPrefix(def, prefix);
+  let beamNodes = [{ world: start, path: [], h: heuristic(start.level, start.player), jump: false }];
+  const seen = new Set();
+  let best = { won: false, path: [], world: start, h: 1e9 };
+
+  for (let d = 0; d < depth; d++) {
+    const next = [];
+    for (const node of beamNodes) {
+      for (const action of ACTIONS) {
+        const w = cloneWorld(node.world);
+        const alive = stepAction(w, action, chunk, node.jump);
+        const path = node.path.concat([[action.keys, chunk]]);
+        if (w.state === 'won') return { won: true, path, world: w };
+        if (!alive) continue;
+        const p = w.player;
+        const key = `${Math.round(p.x / 6)}:${Math.round(p.y / 6)}:${Math.round(p.vx / 45)}:${Math.round(p.vy / 90)}:${p.onGround ? 1 : 0}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const h = heuristic(w.level, p);
+        if (h < best.h) best = { won: false, path, world: w, h };
+        next.push({ world: w, path, h, jump: action.jump });
+      }
+    }
+    if (!next.length) break;
+    next.sort((a, b) => a.h - b.h);
+    beamNodes = next.slice(0, width);
+  }
+  return best;
+}
+
+function compress(path) {
+  const res = [];
+  for (const [keys, dur] of path) {
+    const last = res[res.length - 1];
+    if (last && last[0] === keys) last[1] += dur;
+    else res.push([keys, dur]);
+  }
+  return res;
+}
+
+function cutPath(path, frames) {
+  const res = [];
+  let used = 0;
+  for (const [keys, dur] of path) {
+    if (used >= frames) break;
+    const take = Math.min(dur, frames - used);
+    res.push([keys, take]);
+    used += take;
+  }
+  return compress(res);
+}
+
+window.solveLevel = function solveLevel(idx, opts = {}) {
+  const def = LEVELS[idx];
+  const maxEchoes = def.maxEchoes;
+
+  const r0 = beam(def, [], opts);
+  if (r0.won) return { level: idx, name: def.name, echoes: 0, solution: [compress(r0.path)], zeroEcho: true, frames: 0 };
+
+  let queue = [{ prefix: [], r: r0 }];
+  for (let depth = 1; depth <= maxEchoes; depth++) {
+    const nextQueue = [];
+    for (const node of queue) {
+      const r = node.r;
+      const total = r.path.reduce((a, p) => a + p[1], 0);
+      // freeze points: proportional cuts plus a coarse sweep along the whole run
+      const frames = new Set();
+      for (const f of [0.25, 0.45, 0.65, 0.85, 1]) frames.add(Math.round(total * f));
+      for (let fr = 12; fr <= total; fr += 9) frames.add(fr);
+      for (const fr of [...frames].sort((a, b) => a - b).slice(0, 14)) {
+        const cut = cutPath(r.path, Math.max(6, fr));
+        const prefix = node.prefix.concat([cut]);
+        const rr = beam(def, prefix, opts);
+        if (rr.won) {
+          const solution = prefix.concat([compress(rr.path)]);
+          const check = simulate(def, solution);
+          return { level: idx, name: def.name, echoes: depth, solution, frames: check.frames, verified: check.won };
+        }
+        nextQueue.push({ prefix, r: rr, h: rr.h });
+      }
+    }
+    if (!nextQueue.length) break;
+    nextQueue.sort((a, b) => a.h - b.h);
+    queue = nextQueue.slice(0, opts.branch ?? 6);
+  }
+  return { level: idx, name: def.name, echoes: null, failed: true };
+};
+
+window.solveAll = function (opts = {}) {
+  const results = [];
+  for (let i = 0; i < LEVELS.length; i++) {
+    const r = window.solveLevel(i, opts);
+    results.push(r);
+    log(`#${i + 1} ${r.name}: ` + (r.solution ? `${r.echoes} echo(es) verified=${r.verified}` : 'FAILED'));
+  }
+  window.RESULT = results;
+  return results;
+};
+
+log('ready — ' + LEVELS.length + ' levels');
+window.READY = true;
+</script>
+</body>
+</html>
