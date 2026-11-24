@@ -1,0 +1,11 @@
+{
+  "title": "AFTERIMAGE",
+  "tagline": "You cannot make the jump. Your past self can.",
+  "description": "A browser puzzle platformer with one mechanic: abandon a run and the body you leave behind becomes a solid tile. Freeze yourself in mid-air, on a switch, over a pit, and build the way forward out of who you were. Six rooms, no installs, no account.",
+  "genre": "platformer",
+  "controls": [
+    "keyboard",
+    "mouse"
+  ],
+  "players": "single"
+}
